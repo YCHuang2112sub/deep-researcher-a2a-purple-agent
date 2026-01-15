@@ -12,18 +12,33 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 
-const PORT = 9010;
+// Basic argument parsing
+const args = process.argv.slice(2);
+const portArg = args.indexOf('--port');
+const hostArg = args.indexOf('--host');
+
+const PORT = portArg !== -1 ? parseInt(args[portArg + 1]) : (process.env.PORT ? parseInt(process.env.PORT) : 9010);
+const HOST = hostArg !== -1 ? args[hostArg + 1] : '0.0.0.0';
+
+/**
+ * A2A Agent Card Endpoint
+ */
+const getAgentCard = () => ({
+    name: "StorySlide AI Purple Agent",
+    description: "Purple Agent for generating research-based slide decks.",
+    version: "1.0.0",
+    capabilities: ["generation"],
+    endpoints: {
+        generate: "/generate"
+    }
+});
 
 app.get('/', (req, res) => {
-    res.json({
-        name: "StorySlide AI Purple Agent",
-        description: "Purple Agent for generating research-based slide decks.",
-        version: "1.0.0",
-        capabilities: ["generation"],
-        endpoints: {
-            generate: "/generate"
-        }
-    });
+    res.json(getAgentCard());
+});
+
+app.get('/.well-known/agent-card.json', (req, res) => {
+    res.json(getAgentCard());
 });
 
 app.post('/generate', async (req, res) => {
