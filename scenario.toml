@@ -1,0 +1,25 @@
+[green_agent]
+image = "reasearch-slide-quality-auditor-a2a-green-agent:latest" # Assuming local build
+env = { GEMINI_API_KEY = "${GEMINI_API_KEY}" }
+
+[[participants]]
+image = "deep-researcher-a2a-purple-agent:latest" # Local build of this agent
+name = "agent"
+env = { GEMINI_API_KEY = "${GEMINI_API_KEY}" }
+
+[config]
+domain = "research-audit"
+num_tasks = 1
+research_data = {
+    title = "The Future of Agentic AI",
+    slides = [
+        {
+            title = "Autonomous Agents",
+            findings = "Agents in 2025 will be more autonomous than ever..."
+        },
+        {
+            title = "Tool Use and Reasoning",
+            findings = "Advanced reasoning allows agents to use complex tools effectively..."
+        }
+    ]
+}
