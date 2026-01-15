@@ -2,11 +2,12 @@
 FROM node:20-slim
 
 # Install system dependencies if required for canvas/pdf (though pdf-lib is pure JS)
-# But we might need some tools for ts-node
+# But we might need some tools for ts-node and curl for healthchecks
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
