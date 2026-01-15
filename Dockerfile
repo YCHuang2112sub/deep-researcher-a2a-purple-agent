@@ -24,6 +24,6 @@ COPY . .
 EXPOSE 9010
 
 # Entrypoint to run the server
-# We use npx ts-node to run the typescript server directly
-ENTRYPOINT ["npx", "ts-node", "server.ts"]
+# We use tsx for reliable TS/ESM support
+ENTRYPOINT ["npx", "tsx", "server.ts"]
 CMD ["--host", "0.0.0.0", "--port", "9010"]
