@@ -1,0 +1,7 @@
+{
+  "name": "Nexus Research Engine",
+  "description": "A deep research platform leveraging Gemini 3 Pro with multi-step synthesis, real-time search grounding, and interactive data visualization.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
