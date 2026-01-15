@@ -13,11 +13,13 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 
 // Basic argument parsing
+console.log('[STARTUP] Parsing command line arguments:', process.argv);
 const args = process.argv.slice(2);
 const portArg = args.indexOf('--port');
 const hostArg = args.indexOf('--host');
 
 const PORT = portArg !== -1 ? parseInt(args[portArg + 1]) : (process.env.PORT ? parseInt(process.env.PORT) : 9010);
+console.log('[STARTUP] PORT configured as:', PORT);
 const HOST = hostArg !== -1 ? args[hostArg + 1] : '0.0.0.0';
 
 /**
@@ -34,15 +36,18 @@ const getAgentCard = () => ({
 });
 
 app.get('/', (req, res) => {
+    console.log('[REQUEST] GET / - Sending agent card');
     res.json(getAgentCard());
 });
 
 app.get('/.well-known/agent-card.json', (req, res) => {
+    console.log('[REQUEST] GET /.well-known/agent-card.json - Sending agent card');
     res.json(getAgentCard());
 });
 
 app.post('/generate', async (req, res) => {
-    console.log("\n--- New Generation Request ---");
+    console.log("\n[REQUEST] POST /generate - New Generation Request");
+    console.log('[DEBUG] Request body keys:', Object.keys(req.body));
     const { input } = req.body; // Expecting research_data object
 
     if (!input || !input.slides) {
@@ -145,6 +150,8 @@ app.post('/generate', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Purple Agent listening on port ${PORT}`);
+app.listen(PORT, HOST, () => {
+    console.log(`[STARTUP] Purple Agent listening on ${HOST}:${PORT}`);
+    console.log('[STARTUP] Healthcheck endpoint: /.well-known/agent-card.json');
+    console.log('[STARTUP] Generation endpoint: /generate');
 });
