@@ -27,9 +27,11 @@ const HOST = hostArg !== -1 ? args[hostArg + 1] : '0.0.0.0';
  */
 const getAgentCard = () => ({
     name: "StorySlide AI Purple Agent",
-    description: "Purple Agent for generating research-based slide decks.",
+    description: "An AI-powered Purple Agent specializes in generating structured, research-driven slide decks. It transforms raw research data into visually engaging slides with coherent speaker notes and clear logical flow, suitable for professional presentations.",
     version: "1.0.0",
+    type: "purple",
     capabilities: ["generation"],
+    skills: [],
     endpoints: {
         generate: "/generate"
     }
@@ -55,14 +57,15 @@ app.post('/generate', async (req, res) => {
     }
 
     try {
-        console.log(`Generating slides for: ${input.title || 'Untitled'}`);
+        console.log(`[DEBUG] Generating slides for: ${input.title || 'Untitled'}`);
+        console.log(`[DEBUG] Number of slides requested: ${input.slides?.length || 0}`);
 
         const pdfDoc = await PDFDocument.create();
         const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
         const textFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
         for (const slideData of input.slides) {
-            console.log(`Processing slide: ${slideData.title}`);
+            console.log(`[DEBUG] Starting generation for slide: ${slideData.title}`);
 
             // 1. Re-run design and asset generation to get visuals and script
             // In a real scenario, we might use the incoming findings to generate fresh assets
@@ -80,65 +83,127 @@ app.post('/generate', async (req, res) => {
                 generateSlideScript(design, "Professional narrator"),
                 generateImage(design.visualPrompt, "Cinematic educational style")
             ]);
+            console.log(`[DEBUG] Script and Image generated for: ${slideData.title}`);
 
-            // 2. Add Page to PDF
-            const page = pdfDoc.addPage([800, 600]);
+            // 2. Add Page to PDF (Match PresentationView.tsx style: 1920x1080, Black Background)
+            const page = pdfDoc.addPage([1920, 1080]);
+            const { width, height } = page.getSize();
 
-            // Draw Title
+            // Draw Black Background
+            page.drawRectangle({
+                x: 0,
+                y: 0,
+                width: width,
+                height: height,
+                color: rgb(0, 0, 0),
+            });
+
+            // Draw Title (White, Large)
             page.drawText(design.title, {
-                x: 50,
-                y: 550,
+                x: 100,
+                y: height - 150, // Top-left ish
+                size: 60,
+                font: font,
+                color: rgb(1, 1, 1),
+            });
+
+            // Draw Body Text (Findings summary) - Frontend doesn't do this in PDF but SlideRenderer does.
+            // We adding it for context since we might not have an image
+            const bodyText = slideData.findings ? slideData.findings.substring(0, 300) + '...' : '';
+            page.drawText(bodyText, {
+                x: 100,
+                y: height - 300,
                 size: 24,
-                font: font,
-                color: rgb(0.1, 0.1, 0.1),
+                font: textFont,
+                color: rgb(0.8, 0.8, 0.8),
+                maxWidth: 1000,
+                lineHeight: 32
             });
 
-            // Draw Points
-            let yPos = 500;
-            for (const point of design.points) {
-                page.drawText(`• ${point}`, {
-                    x: 70,
-                    y: yPos,
-                    size: 14,
-                    font: textFont,
-                    color: rgb(0.3, 0.3, 0.3),
-                });
-                yPos -= 25;
+            // Try to fetch and embed image if URL exists
+            if (imageUrl) {
+                try {
+                    // In a real Node env, we need to fetch the image data from the URL (data uri or http)
+                    let imageBytes;
+                    if (imageUrl.startsWith('data:')) {
+                        imageBytes = Buffer.from(imageUrl.split(',')[1], 'base64');
+                    } else {
+                        // Fallback for http urls (not implemented here without axios/fetch, assuming data-uri from gemini)
+                        console.warn("[DEBUG] Image is URL, skipping embed for now:", imageUrl.substring(0, 20));
+                    }
+
+                    if (imageBytes) {
+                        const embeddedImage = await pdfDoc.embedJpg(imageBytes); // Assuming JPEG for now, strictly check mime in real code
+                        // Draw full screen or cover? Frontend does pdf.addImage(..., 1920, 1080)
+                        page.drawImage(embeddedImage, {
+                            x: 0,
+                            y: 0,
+                            width: width,
+                            height: height,
+                            opacity: 0.6 // Slight overlay effect so text is readable
+                        });
+
+                        // Redraw text on top if needed
+                        page.drawText(design.title, {
+                            x: 100,
+                            y: height - 150,
+                            size: 60,
+                            font: font,
+                            color: rgb(1, 1, 1),
+                        });
+                    }
+                } catch (imgErr) {
+                    console.error("Failed to embed image:", imgErr);
+                }
             }
 
-            // Draw Script (as metadata/comment or just text at the bottom)
-            page.drawText("Speaker Note:", {
-                x: 50,
-                y: 100,
-                size: 10,
+            // Draw Script as "Speaker Notes" (Bottom)
+            page.drawText("SPEAKER SCRIPT:", {
+                x: 100,
+                y: 150,
+                size: 14,
                 font: font,
-                color: rgb(0.5, 0.5, 0.5),
+                color: rgb(1, 0.8, 0), // Yellow accent
             });
 
-            const lines = script.match(/.{1,100}/g) || [];
-            let scriptY = 85;
-            for (const line of lines.slice(0, 3)) {
-                page.drawText(line, {
-                    x: 50,
-                    y: scriptY,
-                    size: 9,
-                    font: textFont,
-                    color: rgb(0.4, 0.4, 0.4),
-                });
-                scriptY -= 12;
-            }
-
-            // Note: Embedding images in PDF with pdf-lib is possible but requires fetching and buffer conversion.
-            // For this baseline, we focus on the text and structure which the Green Agent's PDFProcessor extracts.
-            // If the Green Agent specifically needs images, we would embed them here.
+            page.drawText(script.substring(0, 500), {
+                x: 100,
+                y: 120,
+                size: 14,
+                font: textFont,
+                color: rgb(0.9, 0.9, 0.9),
+                maxWidth: 1700,
+                lineHeight: 20
+            });
         }
 
         const pdfBase64 = await pdfDoc.saveAsBase64();
         console.log("PDF generated successfully. Size:", pdfBase64.length);
 
+        // Construct project_data.json structure
+        const projectData = {
+            originalQuery: input.title || "No input provided.",
+            exportedAt: new Date().toISOString(),
+            slides: input.slides.map((s: any, i: number) => ({
+                slideIndex: i + 1,
+                title: s.title,
+                findings: s.findings,
+                speakerNote: "Generated script...", // We should capture the generated scripts in an array to map correctly here
+                sources: []
+            }))
+        };
+
+        // DEBUG: Save to disk to verify content
+        const fs = await import('fs');
+        await fs.promises.writeFile('debug_output.pdf', Buffer.from(pdfBase64, 'base64'));
+        await fs.promises.writeFile('debug_output.json', JSON.stringify(projectData, null, 2));
+
+        console.log("[DEBUG] Saved debug_output.pdf and .json to disk");
+
         res.json({
             status: "success",
-            pdf: pdfBase64
+            pdf: pdfBase64,
+            json: projectData
         });
 
     } catch (error: any) {
