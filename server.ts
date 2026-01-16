@@ -4,7 +4,8 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+// @ts-ignore
+import { jsPDF } from 'jspdf';
 import { planResearchSteps, executeSearch, designSlide, generateSlideScript, generateImage, synthesizeReport, critiqueFindings, auditScript } from './services/geminiService';
 
 dotenv.config({ path: '.env.local' });
@@ -132,17 +133,18 @@ app.post('/generate', async (req, res) => {
         console.log(`[DEBUG] Generating slides for: ${input.title || 'Untitled'}`);
         console.log(`[DEBUG] Number of slides requested: ${input.slides?.length || 0}`);
 
-        const pdfDoc = await PDFDocument.create();
-        const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-        const textFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        // Use jsPDF (same as frontend's PresentationView.tsx)
+        const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'px',
+            format: [1920, 1080]
+        });
 
-        for (const slideData of input.slides) {
+        for (let i = 0; i < input.slides.length; i++) {
+            const slideData = input.slides[i];
             console.log(`[DEBUG] Starting generation for slide: ${slideData.title}`);
 
-            // 1. Re-run design and asset generation to get visuals and script
-            // In a real scenario, we might use the incoming findings to generate fresh assets
-            // For now, we follow the flow: Design -> Script -> Image
-
+            // 1. Generate Design, Script, and Image (same as current logic)
             const design = await designSlide(
                 slideData.title,
                 slideData.findings || "No findings provided.",
@@ -150,106 +152,38 @@ app.post('/generate', async (req, res) => {
                 "Cinematic educational style"
             );
 
-            // Generate Script and Image concurrently
             const [script, imageUrl] = await Promise.all([
                 generateSlideScript(design, "Professional narrator"),
                 generateImage(design.visualPrompt, "Cinematic educational style")
             ]);
             console.log(`[DEBUG] Script and Image generated for: ${slideData.title}`);
 
-            // 2. Add Page to PDF (Match PresentationView.tsx style: 1920x1080, Black Background)
-            const page = pdfDoc.addPage([1920, 1080]);
-            const { width, height } = page.getSize();
+            // 2. Add page (after first slide)
+            if (i > 0) pdf.addPage([1920, 1080], 'landscape');
 
-            // Draw Black Background
-            page.drawRectangle({
-                x: 0,
-                y: 0,
-                width: width,
-                height: height,
-                color: rgb(0, 0, 0),
-            });
+            // 3. Add black background
+            pdf.setFillColor(0, 0, 0);
+            pdf.rect(0, 0, 1920, 1080, 'F');
 
-            // Draw Title (White, Large)
-            page.drawText(design.title, {
-                x: 100,
-                y: height - 150, // Top-left ish
-                size: 60,
-                font: font,
-                color: rgb(1, 1, 1),
-            });
-
-            // Draw Body Text (Findings summary) - Frontend doesn't do this in PDF but SlideRenderer does.
-            // We adding it for context since we might not have an image
-            const bodyText = slideData.findings ? slideData.findings.substring(0, 300) + '...' : '';
-            page.drawText(bodyText, {
-                x: 100,
-                y: height - 300,
-                size: 24,
-                font: textFont,
-                color: rgb(0.8, 0.8, 0.8),
-                maxWidth: 1000,
-                lineHeight: 32
-            });
-
-            // Try to fetch and embed image if URL exists
+            // 4. Add image if available (EXACTLY like frontend)
             if (imageUrl) {
                 try {
-                    // In a real Node env, we need to fetch the image data from the URL (data uri or http)
-                    let imageBytes;
-                    if (imageUrl.startsWith('data:')) {
-                        imageBytes = Buffer.from(imageUrl.split(',')[1], 'base64');
-                    } else {
-                        // Fallback for http urls (not implemented here without axios/fetch, assuming data-uri from gemini)
-                        console.warn("[DEBUG] Image is URL, skipping embed for now:", imageUrl.substring(0, 20));
-                    }
-
-                    if (imageBytes) {
-                        const embeddedImage = await pdfDoc.embedJpg(imageBytes); // Assuming JPEG for now, strictly check mime in real code
-                        // Draw full screen or cover? Frontend does pdf.addImage(..., 1920, 1080)
-                        page.drawImage(embeddedImage, {
-                            x: 0,
-                            y: 0,
-                            width: width,
-                            height: height,
-                            opacity: 0.6 // Slight overlay effect so text is readable
-                        });
-
-                        // Redraw text on top if needed
-                        page.drawText(design.title, {
-                            x: 100,
-                            y: height - 150,
-                            size: 60,
-                            font: font,
-                            color: rgb(1, 1, 1),
-                        });
-                    }
-                } catch (imgErr) {
-                    console.error("Failed to embed image:", imgErr);
+                    // In Node.js, we can't use DOM's Image(), but we can use the data URI directly
+                    // jsPDF supports base64 data URIs
+                    pdf.addImage(imageUrl, 'JPEG', 0, 0, 1920, 1080, undefined, 'FAST');
+                } catch (e) {
+                    console.warn("[DEBUG] Could not add image to PDF for slide", i, e);
                 }
             }
 
-            // Draw Script as "Speaker Notes" (Bottom)
-            page.drawText("SPEAKER SCRIPT:", {
-                x: 100,
-                y: 150,
-                size: 14,
-                font: font,
-                color: rgb(1, 0.8, 0), // Yellow accent
-            });
-
-            page.drawText(script.substring(0, 500), {
-                x: 100,
-                y: 120,
-                size: 14,
-                font: textFont,
-                color: rgb(0.9, 0.9, 0.9),
-                maxWidth: 1700,
-                lineHeight: 20
-            });
+            // 5. Add title overlay (EXACTLY like frontend - line 108-110)
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(40);
+            pdf.text(design.title, 60, 100);
         }
 
-        const pdfBase64 = await pdfDoc.saveAsBase64();
+        // Get PDF as base64
+        const pdfBase64 = pdf.output('datauristring').split(',')[1];
         console.log("PDF generated successfully. Size:", pdfBase64.length);
 
         // Construct project_data.json structure
