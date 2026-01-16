@@ -201,10 +201,11 @@ app.post('/generate', async (req, res) => {
 
         // DEBUG: Save to disk to verify content
         const fs = await import('fs');
-        await fs.promises.writeFile('debug_output.pdf', Buffer.from(pdfBase64, 'base64'));
-        await fs.promises.writeFile('debug_output.json', JSON.stringify(projectData, null, 2));
+        // Save for local debugging
+        fs.writeFileSync('research_output.pdf', Buffer.from(pdfBase64, 'base64'));
+        fs.writeFileSync('research_output.json', JSON.stringify(projectData, null, 2));
 
-        console.log("[DEBUG] Saved debug_output.pdf and .json to disk");
+        console.log("[DEBUG] Saved research_output.pdf and .json to disk");
 
         res.json({
             status: "success",
