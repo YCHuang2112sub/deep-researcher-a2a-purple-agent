@@ -217,11 +217,13 @@ app.post(['/', '/generate'], async (req, res) => {
                         pdf.setFont("helvetica", "normal");
                         pdf.setFontSize(32);
                         let yPos = 350;
-                        design.points.forEach((point: string) => {
+                        console.log(`[PDF] Rendering ${design.points.length} points for split-left`);
+                        design.points.forEach((point: string, idx: number) => {
                             pdf.setFillColor('#EAB308');
                             pdf.circle(95, yPos - 10, 6, 'F');
-                            pdf.setTextColor('#E2E8F0');
+                            pdf.setTextColor(226, 232, 240); // #E2E8F0
                             const lines = pdf.splitTextToSize(point, 750);
+                            console.log(`[PDF] Point ${idx} lines:`, lines);
                             pdf.text(lines, 130, yPos);
                             yPos += lines.length * 45 + 30;
                         });
@@ -258,11 +260,13 @@ app.post(['/', '/generate'], async (req, res) => {
                         pdf.setFont("helvetica", "normal");
                         pdf.setFontSize(32);
                         let yPos = 350;
-                        design.points.forEach((point: string) => {
+                        console.log(`[PDF] Rendering ${design.points.length} points for split-right`);
+                        design.points.forEach((point: string, idx: number) => {
                             pdf.setFillColor('#EAB308');
                             pdf.circle(1055, yPos - 10, 6, 'F');
-                            pdf.setTextColor('#E2E8F0');
+                            pdf.setTextColor(226, 232, 240); // #E2E8F0
                             const lines = pdf.splitTextToSize(point, 750);
+                            console.log(`[PDF] Point ${idx} lines:`, lines);
                             pdf.text(lines, 1090, yPos);
                             yPos += lines.length * 45 + 30;
                         });
@@ -340,10 +344,13 @@ app.post(['/', '/generate'], async (req, res) => {
                         pdf.setFont("helvetica", "normal");
                         pdf.setFontSize(36);
                         let yPos = 600;
-                        design.points.forEach((point: string) => {
-                            pdf.setTextColor('#E2E8F0');
-                            pdf.text(point, 960, yPos, { align: 'center', maxWidth: 1400 });
-                            yPos += 60;
+                        console.log(`[PDF] Rendering ${design.points.length} points for centered`);
+                        design.points.forEach((point: string, idx: number) => {
+                            pdf.setTextColor(226, 232, 240); // #E2E8F0
+                            const lines = pdf.splitTextToSize(point, 1400);
+                            console.log(`[PDF] Point ${idx} lines:`, lines);
+                            pdf.text(lines, 960, yPos, { align: 'center' });
+                            yPos += lines.length * 60;
                         });
                     }
                     break;
