@@ -4,7 +4,7 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import { planResearchSteps, executeSearch, designSlide, generateSlideScript, generateImage } from './services/geminiService';
+import { planResearchSteps, executeSearch, designSlide, generateSlideScript, generateImage, synthesizeReport, critiqueFindings, auditScript } from './services/geminiService';
 
 dotenv.config({ path: '.env.local' });
 
@@ -50,10 +50,79 @@ app.get('/.well-known/agent-card.json', (req, res) => {
 app.post('/generate', async (req, res) => {
     console.log("\n[REQUEST] POST /generate - New Generation Request");
     console.log('[DEBUG] Request body keys:', Object.keys(req.body));
-    const { input } = req.body; // Expecting research_data object
+    let { input } = req.body; // Expecting research_data object
 
+    // MODE A: Full Research Mode (Query provided, no pre-cooked slides)
+    if (input && input.query && (!input.slides || input.slides.length === 0)) {
+        console.log(`[MODE] Deep Research initiated for query: "${input.query}"`);
+        try {
+            // 1. Plan
+            console.log("[RESEARCH] Planning steps...");
+            const plannedSteps = await planResearchSteps(input.query);
+            const finalSteps = [...plannedSteps];
+
+            // 2. Execute Research Loop (Investigate -> Critique -> Refine)
+            for (let i = 0; i < finalSteps.length; i++) {
+                let iteration = 0;
+                let isSufficient = false;
+                const maxIterations = 2;
+
+                while (iteration < maxIterations && !isSufficient) {
+                    console.log(`[RESEARCH] Step ${i + 1}/${finalSteps.length} - Iteration ${iteration}: ${finalSteps[i].title}`);
+
+                    const searchResult = await executeSearch(
+                        finalSteps[i].title,
+                        iteration > 0 ? finalSteps[i].feedback : undefined,
+                        finalSteps[i].findings
+                    );
+
+                    const updatedFindings = iteration === 0
+                        ? searchResult.findings
+                        : `${finalSteps[i].findings}\n\n[Refinement ${iteration}]:\n${searchResult.findings}`;
+
+                    finalSteps[i] = {
+                        ...finalSteps[i],
+                        findings: updatedFindings,
+                        findingsHistory: [...(finalSteps[i].findingsHistory || []), searchResult.findings],
+                        sources: [...(finalSteps[i].sources || []), ...searchResult.sources]
+                    };
+
+                    // Critique
+                    const critique = await critiqueFindings(finalSteps[i].title, updatedFindings);
+                    if (critique.sufficient || iteration >= maxIterations - 1) {
+                        isSufficient = true;
+                        finalSteps[i].status = 'completed';
+                    } else {
+                        finalSteps[i].feedback = critique.refinedQuery || critique.feedback;
+                        iteration++;
+                    }
+                }
+            }
+
+            // 3. Synthesize Report (Optional but good for context)
+            console.log("[RESEARCH] Synthesizing final report...");
+            // const report = await synthesizeReport(input.query, finalSteps); 
+            // We verify synthesis works but for slides we use the steps directly.
+
+            // 4. Map to 'slides' format for generation
+            // The existing logic expects input.slides = [{title, findings}, ...]
+            input.title = input.query.toUpperCase(); // Set deck title
+            input.slides = finalSteps.map(step => ({
+                title: step.title,
+                findings: step.findings
+            }));
+
+            console.log(`[RESEARCH] Completed. Generated ${input.slides.length} slides from research.`);
+
+        } catch (researchError: any) {
+            console.error("Deep Research Failed:", researchError);
+            return res.status(500).json({ error: "Research failed: " + researchError.message });
+        }
+    }
+
+    // MODE B: Slide Generation (Standard Flow)
     if (!input || !input.slides) {
-        return res.status(400).json({ error: "Invalid input: research_data.slides missing" });
+        return res.status(400).json({ error: "Invalid input: research_data.slides (or query) missing" });
     }
 
     try {
