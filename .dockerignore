@@ -1,0 +1,7 @@
+node_modules
+.git
+.env.local
+.env
+debug_output.pdf
+debug_output.json
+test_research_mode.py
