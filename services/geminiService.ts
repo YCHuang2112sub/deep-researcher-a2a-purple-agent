@@ -14,36 +14,51 @@ const isQuotaError = (error: any) => {
 };
 
 export const planResearchSteps = async (query: string): Promise<ResearchStep[]> => {
-  const response = await textAI.models.generateContent({
-    model: 'gemini-2.5-flash-lite',
-    contents: `Plan a deep research investigation for the following query: "${query}". 
-    Break it down into 3-5 distinct, concrete search objectives.
-    For each objective, provide a "researchPlan" which is a brief description (1-2 sentences) of what specifically will be investigated and why.
-    Return as a JSON list of objects with "title", "id", and "researchPlan".`,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            id: { type: Type.STRING },
-            title: { type: Type.STRING },
-            researchPlan: { type: Type.STRING }
-          },
-          required: ["id", "title", "researchPlan"]
+  try {
+    const response = await textAI.models.generateContent({
+      model: 'gemini-2.5-flash-lite',
+      contents: `Plan a deep research investigation for the following query: "${query}". 
+      Break it down into 3-5 distinct, concrete search objectives.
+      For each objective, provide a "researchPlan" which is a brief description (1-2 sentences) of what specifically will be investigated and why.
+      Return as a JSON list of objects with "title", "id", and "researchPlan".`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              title: { type: Type.STRING },
+              researchPlan: { type: Type.STRING }
+            },
+            required: ["id", "title", "researchPlan"]
+          }
         }
       }
-    }
-  });
+    });
 
-  return JSON.parse(response.text || '[]').map((step: any) => ({
-    ...step,
-    status: 'pending',
-    iteration: 0,
-    logs: [],
-    findingsHistory: []
-  }));
+    return JSON.parse(response.text || '[]').map((step: any) => ({
+      ...step,
+      status: 'pending',
+      iteration: 0,
+      logs: [],
+      findingsHistory: []
+    }));
+  } catch (error: any) {
+    console.warn(`[PLANNING] Planning failed. Falling back to default plan. Error: ${error.message}`);
+
+    // Fallback: Return a single generic step to allow the process to continue
+    return [{
+      id: "fallback-step-1",
+      title: "General Investigation: " + query,
+      researchPlan: "Investigate the core topic using general knowledge.",
+      status: 'pending',
+      iteration: 0,
+      logs: [],
+      findingsHistory: []
+    }];
+  }
 };
 
 export const executeSearch = async (stepTitle: string, refinedQuery?: string, previousFindings?: string): Promise<{ findings: string; sources: Source[] }> => {
@@ -55,25 +70,40 @@ export const executeSearch = async (stepTitle: string, refinedQuery?: string, pr
     : `Investigate this specific research objective: "${stepTitle}". 
        Provide a comprehensive, factual summary of findings based on search results.`;
 
-  const response = await textAI.models.generateContent({
-    model: 'gemini-2.5-flash-lite',
-    contents: prompt,
-    config: {
-      tools: [{ googleSearch: {} }]
-    }
-  });
+  try {
+    const response = await textAI.models.generateContent({
+      model: 'gemini-2.5-flash-lite',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }]
+      }
+    });
 
-  const sources: Source[] = response.candidates?.[0]?.groundingMetadata?.groundingChunks
-    ?.filter(chunk => chunk.web)
-    .map(chunk => ({
-      title: chunk.web?.title || 'Source',
-      uri: chunk.web?.uri || '#'
-    })) || [];
+    const sources: Source[] = response.candidates?.[0]?.groundingMetadata?.groundingChunks
+      ?.filter(chunk => chunk.web)
+      .map(chunk => ({
+        title: chunk.web?.title || 'Source',
+        uri: chunk.web?.uri || '#'
+      })) || [];
 
-  return {
-    findings: response.text || "No findings retrieved.",
-    sources
-  };
+    return {
+      findings: response.text || "No findings retrieved.",
+      sources
+    };
+  } catch (error: any) {
+    console.warn(`[SEARCH] Search tool failed (likely 403/Quota). Falling back to LLM knowledge. Error: ${error.message}`);
+
+    // Fallback: Use LLM internal knowledge without search tool
+    const fallbackResponse = await textAI.models.generateContent({
+      model: 'gemini-2.5-flash-lite',
+      contents: `${prompt}\n\n(IMPORTANT: Search tool is unavailable. Please generate a detailed, factual response based on your internal knowledge base.)`,
+    });
+
+    return {
+      findings: fallbackResponse.text || "No findings generated (Fallback).",
+      sources: [{ title: "Internal Knowledge (Search Unavailable)", uri: "#" }]
+    };
+  }
 };
 
 export const critiqueFindings = async (stepTitle: string, findings: string): Promise<CritiqueResult> => {

@@ -1,0 +1,11 @@
+{
+    "input": {
+        "title": "Standalone Test",
+        "slides": [
+            {
+                "title": "Debug Slide",
+                "findings": "This is a test to verify PDF generation."
+            }
+        ]
+    }
+}

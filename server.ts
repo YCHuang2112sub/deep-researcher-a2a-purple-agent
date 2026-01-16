@@ -1,4 +1,5 @@
 
+import './env-setup';
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -7,6 +8,8 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { planResearchSteps, executeSearch, designSlide, generateSlideScript, generateImage, synthesizeReport, critiqueFindings, auditScript } from './services/geminiService';
 
 dotenv.config({ path: '.env.local' });
+
+console.log('[DEBUG] GEMINI_API_KEY loaded:', process.env.GEMINI_API_KEY ? 'YES (' + process.env.GEMINI_API_KEY.substring(0, 4) + '...)' : 'NO');
 
 const app = express();
 app.use(cors());

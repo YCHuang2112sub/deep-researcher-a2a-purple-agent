@@ -28,6 +28,7 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "fs": "^0.0.1-security",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.2",
     "typescript": "~5.8.2",
