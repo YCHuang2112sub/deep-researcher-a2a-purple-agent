@@ -144,17 +144,17 @@ app.post('/generate', async (req, res) => {
             const slideData = input.slides[i];
             console.log(`[DEBUG] Starting generation for slide: ${slideData.title}`);
 
-            // 1. Generate Design, Script, and Image (same as current logic)
+            // 1. Generate Design, Script, and Image (using frontend's default personas)
             const design = await designSlide(
                 slideData.title,
                 slideData.findings || "No findings provided.",
-                "Professional narrator",
-                "Cinematic educational style"
+                "Confident technology analyst with an approachable, energizing tone",  // Default speakerPersona from App.tsx
+                "Ultra-realistic, cinematic 3D imagery with dramatic lighting and hyper-detailed textures"  // Default visualPersona from App.tsx
             );
 
             const [script, imageUrl] = await Promise.all([
-                generateSlideScript(design, "Professional narrator"),
-                generateImage(design.visualPrompt, "Cinematic educational style")
+                generateSlideScript(design, "Confident technology analyst with an approachable, energizing tone"),
+                generateImage(design.visualPrompt, "Ultra-realistic, cinematic 3D imagery with dramatic lighting and hyper-detailed textures")
             ]);
             console.log(`[DEBUG] Script and Image generated for: ${slideData.title}`);
 
