@@ -166,7 +166,7 @@ app.post(['/', '/generate'], async (req, res) => {
         });
 
         // Load default font
-        pdf.setFont("helvetica", "normal");
+        pdf.setFont("Helvetica", "normal");
 
         for (let i = 0; i < input.slides.length; i++) {
             const slideData = input.slides[i];
@@ -208,13 +208,13 @@ app.post(['/', '/generate'], async (req, res) => {
                     pdf.setFillColor('#030712');
                     pdf.rect(0, 0, 960, 1080, 'F');
 
-                    pdf.setTextColor('#FFFFFF');
-                    pdf.setFont("helvetica", "bold");
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont("Helvetica", "bold");
                     pdf.setFontSize(60);
                     pdf.text(design.title.toUpperCase(), 80, 200, { maxWidth: 800 });
 
                     if (design.points && design.points.length > 0) {
-                        pdf.setFont("helvetica", "normal");
+                        pdf.setFont("Helvetica", "normal");
                         pdf.setFontSize(32);
                         let yPos = 350;
                         console.log(`[PDF] Rendering ${design.points.length} points for split-left`);
@@ -251,13 +251,13 @@ app.post(['/', '/generate'], async (req, res) => {
                     pdf.setFillColor('#030712');
                     pdf.rect(960, 0, 960, 1080, 'F');
 
-                    pdf.setTextColor('#FFFFFF');
-                    pdf.setFont("helvetica", "bold");
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont("Helvetica", "bold");
                     pdf.setFontSize(60);
                     pdf.text(design.title.toUpperCase(), 1040, 200, { maxWidth: 800 });
 
                     if (design.points && design.points.length > 0) {
-                        pdf.setFont("helvetica", "normal");
+                        pdf.setFont("Helvetica", "normal");
                         pdf.setFontSize(32);
                         let yPos = 350;
                         console.log(`[PDF] Rendering ${design.points.length} points for split-right`);
@@ -292,13 +292,13 @@ app.post(['/', '/generate'], async (req, res) => {
                         pdf.rect(0, 700, 1920, 380, 'F');
                     }
 
-                    pdf.setTextColor('#FFFFFF');
-                    pdf.setFont("helvetica", "bold");
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont("Helvetica", "bold");
                     pdf.setFontSize(70);
                     pdf.text(design.title.toUpperCase(), 80, 820, { maxWidth: 1760 });
 
                     if (design.points && design.points.length > 0) {
-                        pdf.setFont("helvetica", "normal");
+                        pdf.setFont("Helvetica", "normal");
                         pdf.setFontSize(28);
                         let yPos = 940;
                         design.points.slice(0, 2).forEach((point: string) => {
@@ -332,8 +332,8 @@ app.post(['/', '/generate'], async (req, res) => {
                         pdf.rect(0, 0, 1920, 1080, 'F');
                     }
 
-                    pdf.setTextColor('#FFFFFF');
-                    pdf.setFont("helvetica", "bold");
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont("Helvetica", "bold");
                     pdf.setFontSize(80);
                     pdf.text(design.title.toUpperCase(), 960, 400, { align: 'center', maxWidth: 1600 });
 
@@ -341,7 +341,7 @@ app.post(['/', '/generate'], async (req, res) => {
                     pdf.rect(860, 480, 200, 8, 'F');
 
                     if (design.points && design.points.length > 0) {
-                        pdf.setFont("helvetica", "normal");
+                        pdf.setFont("Helvetica", "normal");
                         pdf.setFontSize(36);
                         let yPos = 600;
                         console.log(`[PDF] Rendering ${design.points.length} points for centered`);
