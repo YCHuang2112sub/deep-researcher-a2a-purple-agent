@@ -21,29 +21,38 @@ try:
     if response.status_code == 200:
         print("Request successful.")
         try:
-            response_data = response.json()
+            data = response.json()
         except json.JSONDecodeError:
             print(f"Failed to decode JSON. Raw response: {response.text[:200]}")
             exit(1)
         
-        # Check for PDF
-        if "pdf" in response_data:
-            print(f"Success! PDF generated. Size: {len(response_data['pdf'])} chars")
-            # Save it
+        if 'pdf' in data:
+            pdf_data = data['pdf']
+            print(f"Success! PDF generated. Size: {len(pdf_data)} chars")
+            
+            # Save PDF
             try:
-                with open("research_output.pdf", "wb") as f:
-                    f.write(base64.b64decode(response_data['pdf']))
+                with open('research_output.pdf', 'wb') as f:
+                    f.write(base64.b64decode(pdf_data))
                 print("Saved research_output.pdf")
             except Exception as e:
                 print(f"Error saving PDF: {e}")
         
-        # Check for JSON data
-        if "json" in response_data:
+        if 'json' in data:
+            json_data = data['json']
             print("Success! JSON data returned.")
-            slides = response_data['json'].get('slides', [])
-            print(f"Slides Generated: {len(slides)}")
-            if len(slides) > 0:
-                print(f"First Slide Title: {slides[0].get('title', 'N/A')}")
+            
+            # Save JSON
+            try:
+                with open('research_output.json', 'w', encoding='utf-8') as f:
+                    json.dump(json_data, f, indent=2, ensure_ascii=False)
+                print("Saved research_output.json")
+            except Exception as e:
+                print(f"Error saving JSON: {e}")
+            
+            print(f"Slides Generated: {len(json_data.get('slides', []))}")
+            if json_data.get('slides'):
+                print(f"First Slide Title: {json_data['slides'][0].get('title', 'Unknown')}")
             
     else:
         print(f"Request failed: {response.text}")
