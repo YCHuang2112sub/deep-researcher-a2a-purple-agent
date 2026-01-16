@@ -204,39 +204,29 @@ app.post(['/', '/generate'], async (req, res) => {
 
             switch (layout) {
                 case 'split-left':
-                    // Left half: text panel, Height half: image
-                    pdf.setFillColor('#020617'); // bg-[#020617]
-                    pdf.rect(0, 0, 1920, 1080, 'F');
-
-                    // Text panel (left half)
-                    pdf.setFillColor('#030712'); // Darker panel bg
+                    // Text Left, Image Right
+                    pdf.setFillColor('#030712');
                     pdf.rect(0, 0, 960, 1080, 'F');
 
-                    // Title
                     pdf.setTextColor('#FFFFFF');
                     pdf.setFont("helvetica", "bold");
                     pdf.setFontSize(60);
                     pdf.text(design.title.toUpperCase(), 80, 200, { maxWidth: 800 });
 
-                    // Bullet points
                     if (design.points && design.points.length > 0) {
                         pdf.setFont("helvetica", "normal");
-                        pdf.setFontSize(28);
-                        let yPos = 320;
+                        pdf.setFontSize(32);
+                        let yPos = 350;
                         design.points.forEach((point: string) => {
-                            // Bullet dot
-                            pdf.setFillColor('#EAB308'); // yellow-500
-                            pdf.circle(90, yPos - 5, 5, 'F');
-
-                            // Text
-                            pdf.setTextColor('#E2E8F0'); // slate-200
-                            const lines = pdf.splitTextToSize(point, 750) || [point];
-                            pdf.text(lines, 120, yPos);
-                            yPos += (Array.isArray(lines) ? lines.length : 1) * 40 + 30;
+                            pdf.setFillColor('#EAB308');
+                            pdf.circle(95, yPos - 10, 6, 'F');
+                            pdf.setTextColor('#E2E8F0');
+                            const lines = pdf.splitTextToSize(point, 750);
+                            pdf.text(lines, 130, yPos);
+                            yPos += lines.length * 45 + 30;
                         });
                     }
 
-                    // Image (right half)
                     if (imageUrl) {
                         try {
                             pdf.addImage(imageUrl, 'JPEG', 960, 0, 960, 1080, undefined, 'FAST');
@@ -247,11 +237,7 @@ app.post(['/', '/generate'], async (req, res) => {
                     break;
 
                 case 'split-right':
-                    // Left half: image, Right half: text panel
-                    pdf.setFillColor('#020617');
-                    pdf.rect(0, 0, 1920, 1080, 'F');
-
-                    // Image (left half)
+                    // Image Left, Text Right
                     if (imageUrl) {
                         try {
                             pdf.addImage(imageUrl, 'JPEG', 0, 0, 960, 1080, undefined, 'FAST');
@@ -260,34 +246,30 @@ app.post(['/', '/generate'], async (req, res) => {
                         }
                     }
 
-                    // Text panel (right half)
                     pdf.setFillColor('#030712');
                     pdf.rect(960, 0, 960, 1080, 'F');
 
-                    // Title
                     pdf.setTextColor('#FFFFFF');
                     pdf.setFont("helvetica", "bold");
                     pdf.setFontSize(60);
                     pdf.text(design.title.toUpperCase(), 1040, 200, { maxWidth: 800 });
 
-                    // Bullet points
                     if (design.points && design.points.length > 0) {
                         pdf.setFont("helvetica", "normal");
-                        pdf.setFontSize(28);
-                        let yPos = 320;
+                        pdf.setFontSize(32);
+                        let yPos = 350;
                         design.points.forEach((point: string) => {
                             pdf.setFillColor('#EAB308');
-                            pdf.circle(1050, yPos - 5, 5, 'F');
+                            pdf.circle(1055, yPos - 10, 6, 'F');
                             pdf.setTextColor('#E2E8F0');
-                            const lines = pdf.splitTextToSize(point, 750) || [point];
-                            pdf.text(lines, 1080, yPos);
-                            yPos += (Array.isArray(lines) ? lines.length : 1) * 40 + 30;
+                            const lines = pdf.splitTextToSize(point, 750);
+                            pdf.text(lines, 1090, yPos);
+                            yPos += lines.length * 45 + 30;
                         });
                     }
                     break;
 
                 case 'bottom-overlay':
-                    // Full image with bottom text overlay
                     if (imageUrl) {
                         try {
                             pdf.addImage(imageUrl, 'JPEG', 0, 0, 1920, 1080, undefined, 'FAST');
@@ -295,36 +277,39 @@ app.post(['/', '/generate'], async (req, res) => {
                             console.warn("[PDF] Could not add image for bottom-overlay layout");
                         }
                     }
+                    // Overlay at bottom
+                    pdf.setFillColor(2, 6, 23); // #020617
+                    try {
+                        pdf.setGState(new (pdf as any).GState({ opacity: 0.8 }));
+                        pdf.rect(0, 700, 1920, 380, 'F');
+                        pdf.setGState(new (pdf as any).GState({ opacity: 1.0 }));
+                    } catch (e) {
+                        // Fallback if GState fails in node environment
+                        pdf.rect(0, 700, 1920, 380, 'F');
+                    }
 
-                    // Gradient overlay (simulated with semi-transparent rect)
-                    pdf.setFillColor('#020617');
-                    pdf.rect(0, 700, 1920, 380, 'F');
-
-                    // Title
                     pdf.setTextColor('#FFFFFF');
                     pdf.setFont("helvetica", "bold");
                     pdf.setFontSize(70);
-                    pdf.text(design.title.toUpperCase(), 80, 800, { maxWidth: 1760 });
+                    pdf.text(design.title.toUpperCase(), 80, 820, { maxWidth: 1760 });
 
-                    // Bullet points
                     if (design.points && design.points.length > 0) {
                         pdf.setFont("helvetica", "normal");
-                        pdf.setFontSize(26);
-                        let yPos = 920;
+                        pdf.setFontSize(28);
+                        let yPos = 940;
                         design.points.slice(0, 2).forEach((point: string) => {
                             pdf.setFillColor('#EAB308');
-                            pdf.circle(90, yPos - 5, 5, 'F');
+                            pdf.circle(95, yPos - 8, 6, 'F');
                             pdf.setTextColor('#E2E8F0');
-                            const lines = pdf.splitTextToSize(point, 1700) || [point];
-                            pdf.text(lines, 120, yPos);
-                            yPos += (Array.isArray(lines) ? lines.length : 1) * 35 + 20;
+                            const lines = pdf.splitTextToSize(point, 1700);
+                            pdf.text(lines, 130, yPos);
+                            yPos += lines.length * 40 + 20;
                         });
                     }
                     break;
 
                 case 'centered':
                 default:
-                    // Full image with centered text overlay
                     if (imageUrl) {
                         try {
                             pdf.addImage(imageUrl, 'JPEG', 0, 0, 1920, 1080, undefined, 'FAST');
@@ -332,38 +317,33 @@ app.post(['/', '/generate'], async (req, res) => {
                             console.warn("[PDF] Could not add image for centered layout");
                         }
                     }
+                    // Full overlay
+                    pdf.setFillColor(2, 6, 23); // #020617
+                    try {
+                        pdf.setGState(new (pdf as any).GState({ opacity: 0.6 }));
+                        pdf.rect(0, 0, 1920, 1080, 'F');
+                        pdf.setGState(new (pdf as any).GState({ opacity: 1.0 }));
+                    } catch (e) {
+                        // Fallback
+                        pdf.rect(0, 0, 1920, 1080, 'F');
+                    }
 
-                    // Dark overlay
-                    pdf.setFillColor('#020617');
-                    pdf.rect(0, 0, 1920, 1080, 'F');
-
-                    // Title (centered)
                     pdf.setTextColor('#FFFFFF');
                     pdf.setFont("helvetica", "bold");
-                    pdf.setFontSize(70);
-                    pdf.text(design.title.toUpperCase(), 960, 350, { align: 'center', maxWidth: 1600 });
+                    pdf.setFontSize(80);
+                    pdf.text(design.title.toUpperCase(), 960, 400, { align: 'center', maxWidth: 1600 });
 
-                    // Yellow divider
                     pdf.setFillColor('#EAB308');
-                    pdf.rect(860, 450, 200, 6, 'F');
+                    pdf.rect(860, 480, 200, 8, 'F');
 
-                    // Bullet points (centered)
                     if (design.points && design.points.length > 0) {
                         pdf.setFont("helvetica", "normal");
-                        pdf.setFontSize(28);
-                        let yPos = 540;
+                        pdf.setFontSize(36);
+                        let yPos = 600;
                         design.points.forEach((point: string) => {
-                            pdf.setFillColor('#EAB308');
-                            let startX = 260;
-                            try {
-                                const textWidth = pdf.getTextWidth(point);
-                                startX = 960 - textWidth / 2;
-                            } catch (e) { }
-
-                            pdf.circle(startX - 20, yPos - 5, 5, 'F');
                             pdf.setTextColor('#E2E8F0');
                             pdf.text(point, 960, yPos, { align: 'center', maxWidth: 1400 });
-                            yPos += 50;
+                            yPos += 60;
                         });
                     }
                     break;

@@ -85,29 +85,151 @@ const PresentationView: React.FC<Props> = ({ steps, currentIndex, originalQuery,
                 const step = steps[i];
                 if (i > 0) pdf.addPage([1920, 1080], 'landscape');
 
-                // Add slide background (black)
-                pdf.setFillColor(0, 0, 0);
+                const layout = step.preferredLayout || (['centered', 'split-left', 'split-right', 'bottom-overlay'][i % 4]);
+                const title = step.slideDesign?.title || step.title;
+                const points = step.slideDesign?.points || [];
+
+                // 1. Clear background
+                pdf.setFillColor('#020617');
                 pdf.rect(0, 0, 1920, 1080, 'F');
 
+                // 2. Fetch image if exists
+                let img: HTMLImageElement | null = null;
                 if (step.imageUrl) {
                     try {
-                        const img = new Image();
+                        img = new Image();
                         img.crossOrigin = "Anonymous";
                         await new Promise((resolve, reject) => {
-                            img.onload = resolve;
-                            img.onerror = reject;
-                            img.src = step.imageUrl!;
+                            img!!.onload = resolve;
+                            img!!.onerror = reject;
+                            img!!.src = step.imageUrl!;
                         });
-                        pdf.addImage(img, 'JPEG', 0, 0, 1920, 1080, undefined, 'FAST');
                     } catch (e) {
-                        console.warn("Could not add image to PDF for slide", i);
+                        console.warn("Could not load image for PDF", e);
                     }
                 }
 
-                // Add title as overlay for PDF clarity
-                pdf.setTextColor(255, 255, 255);
-                pdf.setFontSize(40);
-                pdf.text(step.title, 60, 100);
+                // 3. Render based on layout
+                switch (layout) {
+                    case 'split-left':
+                        // Text Left, Image Right
+                        pdf.setFillColor('#030712');
+                        pdf.rect(0, 0, 960, 1080, 'F');
+
+                        pdf.setTextColor('#FFFFFF');
+                        pdf.setFont("helvetica", "bold");
+                        pdf.setFontSize(60);
+                        pdf.text(title.toUpperCase(), 80, 200, { maxWidth: 800 });
+
+                        if (points.length > 0) {
+                            pdf.setFont("helvetica", "normal");
+                            pdf.setFontSize(32);
+                            let yPos = 350;
+                            points.forEach((point: string) => {
+                                pdf.setFillColor('#EAB308');
+                                pdf.circle(95, yPos - 10, 6, 'F');
+                                pdf.setTextColor('#E2E8F0');
+                                const lines = pdf.splitTextToSize(point, 750);
+                                pdf.text(lines, 130, yPos);
+                                yPos += lines.length * 45 + 30;
+                            });
+                        }
+
+                        if (img) {
+                            pdf.addImage(img, 'JPEG', 960, 0, 960, 1080, undefined, 'FAST');
+                        }
+                        break;
+
+                    case 'split-right':
+                        // Image Left, Text Right
+                        if (img) {
+                            pdf.addImage(img, 'JPEG', 0, 0, 960, 1080, undefined, 'FAST');
+                        }
+
+                        pdf.setFillColor('#030712');
+                        pdf.rect(960, 0, 960, 1080, 'F');
+
+                        pdf.setTextColor('#FFFFFF');
+                        pdf.setFont("helvetica", "bold");
+                        pdf.setFontSize(60);
+                        pdf.text(title.toUpperCase(), 1040, 200, { maxWidth: 800 });
+
+                        if (points.length > 0) {
+                            pdf.setFont("helvetica", "normal");
+                            pdf.setFontSize(32);
+                            let yPos = 350;
+                            points.forEach((point: string) => {
+                                pdf.setFillColor('#EAB308');
+                                pdf.circle(1055, yPos - 10, 6, 'F');
+                                pdf.setTextColor('#E2E8F0');
+                                const lines = pdf.splitTextToSize(point, 750);
+                                pdf.text(lines, 1090, yPos);
+                                yPos += lines.length * 45 + 30;
+                            });
+                        }
+                        break;
+
+                    case 'bottom-overlay':
+                        if (img) {
+                            pdf.addImage(img, 'JPEG', 0, 0, 1920, 1080, undefined, 'FAST');
+                        }
+                        // Overlay at bottom
+                        pdf.setFillColor(2, 6, 23); // #020617
+                        pdf.setGState(new (pdf as any).GState({ opacity: 0.8 }));
+                        pdf.rect(0, 700, 1920, 380, 'F');
+                        pdf.setGState(new (pdf as any).GState({ opacity: 1.0 }));
+
+                        pdf.setTextColor('#FFFFFF');
+                        pdf.setFont("helvetica", "bold");
+                        pdf.setFontSize(70);
+                        pdf.text(title.toUpperCase(), 80, 820, { maxWidth: 1760 });
+
+                        if (points.length > 0) {
+                            pdf.setFont("helvetica", "normal");
+                            pdf.setFontSize(28);
+                            let yPos = 940;
+                            points.slice(0, 2).forEach((point: string) => {
+                                pdf.setFillColor('#EAB308');
+                                pdf.circle(95, yPos - 8, 6, 'F');
+                                pdf.setTextColor('#E2E8F0');
+                                const lines = pdf.splitTextToSize(point, 1700);
+                                pdf.text(lines, 130, yPos);
+                                yPos += lines.length * 40 + 20;
+                            });
+                        }
+                        break;
+
+                    case 'centered':
+                    default:
+                        if (img) {
+                            pdf.addImage(img, 'JPEG', 0, 0, 1920, 1080, undefined, 'FAST');
+                        }
+                        // Full overlay
+                        pdf.setFillColor(2, 6, 23); // #020617
+                        pdf.setGState(new (pdf as any).GState({ opacity: 0.6 }));
+                        pdf.rect(0, 0, 1920, 1080, 'F');
+                        pdf.setGState(new (pdf as any).GState({ opacity: 1.0 }));
+
+                        pdf.setTextColor('#FFFFFF');
+                        pdf.setFont("helvetica", "bold");
+                        pdf.setFontSize(80);
+                        pdf.text(title.toUpperCase(), 960, 400, { align: 'center', maxWidth: 1600 });
+
+                        pdf.setFillColor('#EAB308');
+                        pdf.rect(860, 480, 200, 8, 'F');
+
+                        if (points.length > 0) {
+                            pdf.setFont("helvetica", "normal");
+                            pdf.setFontSize(36);
+                            let yPos = 600;
+                            points.forEach((point: string) => {
+                                pdf.setTextColor('#E2E8F0');
+                                pdf.text(point, 960, yPos, { align: 'center', maxWidth: 1400 });
+                                yPos += 60;
+                            });
+                        }
+                        break;
+                }
             }
 
             const pdfBlob = pdf.output('blob');
