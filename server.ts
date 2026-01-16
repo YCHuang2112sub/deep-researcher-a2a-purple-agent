@@ -350,7 +350,15 @@ app.post('/generate', async (req, res) => {
         fs.writeFileSync('research_output.pdf', Buffer.from(pdfBase64, 'base64'));
         fs.writeFileSync('research_output.json', JSON.stringify(projectData, null, 2));
 
-        console.log("[DEBUG] Saved research_output.pdf and .json to disk");
+        // Save to mounted volume
+        try {
+            if (!fs.existsSync('/app/debug_output')) fs.mkdirSync('/app/debug_output', { recursive: true });
+            fs.writeFileSync('/app/debug_output/purple_output.pdf', Buffer.from(pdfBase64, 'base64'));
+            fs.writeFileSync('/app/debug_output/purple_output.json', JSON.stringify(projectData, null, 2));
+            console.log("[DEBUG] Saved purple_output.pdf and .json to /app/debug_output");
+        } catch (e) { console.error("[DEBUG] Failed to save to volume:", e); }
+
+        console.log("[DEBUG] Saved research_output.pdf and .json to debug path");
 
         res.json({
             status: "success",
