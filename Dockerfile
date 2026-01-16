@@ -22,9 +22,9 @@ RUN npm install
 COPY . .
 
 # Expose the Purple Agent port
-EXPOSE 9010
+EXPOSE 9009
 
 # Entrypoint to run the server
 # We use tsx for reliable TS/ESM support
 ENTRYPOINT ["npx", "tsx", "server.ts"]
-CMD ["--host", "0.0.0.0", "--port", "9010"]
+CMD ["--host", "0.0.0.0", "--port", "9009"]
