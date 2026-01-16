@@ -1,17 +1,9 @@
 services:
-  green-agent:
-    build:
-      context: ../reasearch-slide-quality-auditor-a2a-green-agent
-    ports:
-      - "9009:9009"
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-    command: [ "--host", "0.0.0.0", "--port", "9009" ]
-
   purple-agent:
     build: .
     ports:
       - "9010:9010"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-    command: [ "npx", "ts-node", "server.ts" ]
+      - GEMINI_API_KEY_IMAGE_GEN=${GEMINI_API_KEY_IMAGE_GEN}
+    command: [ "npx", "tsx", "server.ts" ]
