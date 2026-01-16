@@ -19,8 +19,8 @@ const SlideRenderer: React.FC<Props> = ({ slide }) => {
             return (
                 <ul className="space-y-4">
                     {slide.points.map((point, i) => (
-                        <li key={i} className="flex gap-4 items-start text-xl lg:text-3xl text-slate-200 font-medium leading-snug">
-                            <span className="mt-2 w-2 h-2 rounded-full bg-yellow-500 shrink-0 shadow-[0_0_10px_rgba(234,179,8,0.5)]" />
+                        <li key={i} className="flex gap-4 items-start text-4xl lg:text-5xl text-slate-200 font-medium leading-snug">
+                            <span className="mt-2 w-3 h-3 rounded-full bg-yellow-500 shrink-0 shadow-[0_0_10px_rgba(234,179,8,0.5)]" />
                             <span>{point}</span>
                         </li>
                     ))}
@@ -28,7 +28,7 @@ const SlideRenderer: React.FC<Props> = ({ slide }) => {
             );
         }
         return (
-            <p className="text-2xl lg:text-3xl text-slate-300 leading-relaxed font-medium">
+            <p className="text-4xl lg:text-5xl text-slate-300 leading-relaxed font-medium">
                 {slide.bodyText}
             </p>
         );

@@ -142,6 +142,13 @@ app.post('/generate', async (req, res) => {
 
         for (let i = 0; i < input.slides.length; i++) {
             const slideData = input.slides[i];
+
+            // Rate limiting: Wait before generating subsequent slides to avoid image model overload
+            if (i > 0) {
+                console.log("[DEBUG] Waiting 10s before next slide validation to respect API rate limits...");
+                await new Promise(resolve => setTimeout(resolve, 10000));
+            }
+
             console.log(`[DEBUG] Starting generation for slide: ${slideData.title}`);
 
             // 1. Generate Design, Script, and Image (using frontend's default personas from App.tsx lines 21-22)
